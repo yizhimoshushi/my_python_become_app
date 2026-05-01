@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04 # 使用 Ubuntu 20.04，稳定性最好
+    runs-on: runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout Code
