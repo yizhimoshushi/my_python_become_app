@@ -74,21 +74,33 @@ jobs:
         mv cmdline-tools/bin cmdline-tools/latest/
         mv cmdline-tools/lib cmdline-tools/latest/
 
-        # 2. 验证 sdkmanager 路径
+        # 2. 创建兼容的 tools 目录（关键步骤！）
+        # Buildozer 期望在 tools/bin/sdkmanager 找到 sdkmanager
+        # 我们创建一个符号链接或复制目录
+        echo "Creating compatibility layer for Buildozer..."
+        mkdir -p $ANDROID_HOME/tools/bin
+        mkdir -p $ANDROID_HOME/tools/lib
+        
+        # 将 cmdline-tools/latest 的内容链接到 tools 目录
+        ln -s $ANDROID_HOME/cmdline-tools/latest/bin/* $ANDROID_HOME/tools/bin/
+        ln -s $ANDROID_HOME/cmdline-tools/latest/lib/* $ANDROID_HOME/tools/lib/
+
+        # 3. 验证 sdkmanager 路径
         echo "Looking for sdkmanager..."
         find $ANDROID_HOME -name "sdkmanager" -type f
         
-        # 3. 接受协议
+        # 4. 接受协议
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-        # 4. 安装必要组件
+        # 5. 安装必要组件
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-        # 5. 验证安装
+        # 6. 验证安装
         ls -la $ANDROID_HOME/platforms/
         ls -la $ANDROID_HOME/build-tools/
+        ls -la $ANDROID_HOME/tools/bin/
 
-        # 6. 返回项目根目录并开始构建
+        # 7. 返回项目根目录并开始构建
         cd $GITHUB_WORKSPACE
         echo "Current directory: $(pwd)"
         ls -la buildozer.spec
