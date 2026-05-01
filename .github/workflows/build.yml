@@ -52,22 +52,33 @@ jobs:
 
       - name: Build APK
         run: |
-          # 1. 定义 SDK 路径变量，防止路径错误
+          # 1. 定义 SDK 根目录
           export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           
-          # 2. 创建 licenses 目录（如果不存在）
+          # 2. 【关键修复】修正 sdkmanager 的路径
+          # 新版本 SDK 把 sdkmanager 放在了 lib/bin 下，而不是 bin 下
+          SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/lib/bin/sdkmanager"
+          
+          # 3. 创建 licenses 目录
           mkdir -p $HOME/.android
           
-          # 3. 【核心修复】使用 yes 命令自动接受所有 licenses
-          # 这会模拟用户疯狂按 'y' 键，直到所有协议都被接受
-          yes | sdkmanager --licenses
+          # 4. 使用 yes 命令自动接受所有 licenses
+          # 如果上面的路径不对，这里会报错，但我们先试试这个标准路径
+          if [ -f "$SDK_MANAGER" ]; then
+              echo "Found sdkmanager at $SDK_MANAGER"
+              yes | $SDK_MANAGER --licenses
+          else
+              echo "Error: sdkmanager not found at $SDK_MANAGER"
+              # 尝试找一下它到底在哪，方便调试
+              find $ANDROID_HOME -name "sdkmanager"
+          fi
           
-          # 4. 预安装 build-tools（防止 buildozer 再次询问）
-          # 我们指定一个稳定的版本，比如 34.0.0 或 33.0.0
-          sdkmanager "build-tools;34.0.0" "platform-tools" "platforms;android-34"
+          # 5. 预安装 build-tools (使用绝对路径调用)
+          if [ -f "$SDK_MANAGER" ]; then
+              $SDK_MANAGER "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          fi
           
-          # 5. 现在运行 buildozer，环境已经准备好了
+          # 6. 运行 buildozer
           buildozer android debug p4a --package pgs4a
           
       # 修正点 2：这里必须升级到 @v4，否则会报 deprecated 错误
