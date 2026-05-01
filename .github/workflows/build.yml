@@ -2,8 +2,7 @@ name: Build Pygame APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -11,87 +10,78 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4 # 建议更新 actions 版本
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          # 修正点 1: 升级 Python 版本
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            python3-pip \
-            build-essential \
-            git \
-            ffmpeg \
-            libsdl2-dev \
-            libsdl2-image-dev \
-            libsdl2-mixer-dev \
-            libsdl2-ttf-dev \
-            libportmidi-dev \
-            libswscale-dev \
-            libavformat-dev \
-            libavcodec-dev \
-            zlib1g-dev \
-            libgstreamer1.0-dev \ # 修正：通常需要 -dev 包
-            gstreamer1.0-plugins-base \
-            gstreamer1.0-plugins-good \
-            openjdk-17-jdk \
-            autoconf \
-            automake \
-            libtool \
-            unzip \ # 确保有 unzip
-            wget
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-pip \
+          build-essential \
+          git \
+          ffmpeg \
+          libsdl2-dev \
+          libsdl2-image-dev \
+          libsdl2-mixer-dev \
+          libsdl2-ttf-dev \
+          libportmidi-dev \
+          libswscale-dev \
+          libavformat-dev \
+          libavcodec-dev \
+          zlib1g-dev \
+          libgstreamer1.0-dev \
+          gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good \
+          openjdk-17-jdk \
+          autoconf \
+          automake \
+          libtool \
+          unzip \
+          wget
 
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer cython
+    - name: Install Buildozer
+      run: |
+        python -m pip install --upgrade pip
+        pip install buildozer cython
 
-      - name: Configure Buildozer (If no spec file)
-        run: |
-          # 如果你的仓库里没有 buildozer.spec，这一步会自动生成一个
-          # 请根据你的项目修改 title 和 package.name
-          if [ ! -f "buildozer.spec" ]; then
-            buildozer init
-            sed -i 's/title = My Application/title = My Pygame App/' buildozer.spec
-            sed -i 's/package.name = myapp/package.name = org.example.myapp/' buildozer.spec
-            sed -i 's/package.domain = org.example/package.domain = org.example/' buildozer.spec
-          fi
+    # 注意：这里移除了 "Configure Buildozer" 步骤
+    # 我们直接使用仓库根目录下的 buildozer.spec
+    # 请确保你的仓库里已经包含了正确的 buildozer.spec 文件
 
-      - name: Build APK
-        run: |
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-          
-          # 1. 手动下载并修复 SDK 结构
-          echo "Setting up Android SDK..."
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/sdk-tools.zip
-          unzip -q /tmp/sdk-tools.zip -d /tmp/
-          
-          # 修正点 2: 修复解压后的目录结构
-          # 将解压出的 cmdline-tools/latest 移动到目标位置
-          mv /tmp/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          
-          # 2. 接受协议
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 3. 安装组件 (修正点 3: 使用更通用的通配符或更新版本)
-          # 如果 34 不可用，尝试 35 或者直接让 buildozer 处理
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-          
-          # 4. 构建
-          echo "Starting Buildozer..."
-          buildozer -v android debug
+    - name: Build APK
+      run: |
+        # 设置 ANDROID_HOME
+        export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: pygame-apk
-          # 修正点 4: Buildozer 默认输出路径
-          path: bin/*.apk
+        # 1. 手动下载并修复 SDK 结构
+        echo "Setting up Android SDK..."
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/sdk-tools.zip
+        unzip -q /tmp/sdk-tools.zip -d /tmp/
+        
+        # 修复目录结构: 将 cmdline-tools 移动到目标位置
+        mv /tmp/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+        # 2. 接受协议
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+        # 3. 安装组件
+        # 使用较新的 API 级别 (34 或 35)
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+        # 4. 构建
+        echo "Starting Buildozer..."
+        buildozer -v android debug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: pygame-apk
+        path: bin/*.apk
