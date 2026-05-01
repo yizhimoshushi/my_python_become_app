@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # 允许手动点击按钮触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,13 +12,13 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4 # 建议更新 actions 版本
 
-      # 修正点 1：这里必须用 setup-python 动作，而不是 upload-artifact
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          # 修正点 1: 升级 Python 版本
+          python-version: '3.10'
 
       - name: Install System Dependencies
         run: |
@@ -37,58 +37,61 @@ jobs:
             libavformat-dev \
             libavcodec-dev \
             zlib1g-dev \
-            libgstreamer1.0 \
+            libgstreamer1.0-dev \ # 修正：通常需要 -dev 包
             gstreamer1.0-plugins-base \
             gstreamer1.0-plugins-good \
             openjdk-17-jdk \
             autoconf \
             automake \
-            libtool
+            libtool \
+            unzip \ # 确保有 unzip
+            wget
 
       - name: Install Buildozer
         run: |
-          pip3 install buildozer
-          pip3 install cython
+          python -m pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Configure Buildozer (If no spec file)
+        run: |
+          # 如果你的仓库里没有 buildozer.spec，这一步会自动生成一个
+          # 请根据你的项目修改 title 和 package.name
+          if [ ! -f "buildozer.spec" ]; then
+            buildozer init
+            sed -i 's/title = My Application/title = My Pygame App/' buildozer.spec
+            sed -i 's/package.name = myapp/package.name = org.example.myapp/' buildozer.spec
+            sed -i 's/package.domain = org.example/package.domain = org.example/' buildozer.spec
+          fi
 
       - name: Build APK
         run: |
-          # 1. 定义路径变量
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           
-          # 2. 【手动下载】Android SDK 命令行工具
-          # 如果目录不存在，我们就自己下载！
-          if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-              echo "SDK 未找到，开始手动下载..."
-              mkdir -p $ANDROID_HOME/cmdline-tools
-              # 下载 Google 官方工具
-              wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip
-              # 解压到正确的位置
-              unzip -q /tmp/cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
-              # 重命名文件夹以匹配 Buildozer 的预期结构
-              mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          fi
+          # 1. 手动下载并修复 SDK 结构
+          echo "Setting up Android SDK..."
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/sdk-tools.zip
+          unzip -q /tmp/sdk-tools.zip -d /tmp/
           
-          # 3. 定义 sdkmanager 的绝对路径
-          SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          # 修正点 2: 修复解压后的目录结构
+          # 将解压出的 cmdline-tools/latest 移动到目标位置
+          mv /tmp/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           
-          # 4. 【强制接受协议】
-          echo "正在接受 Android SDK 许可协议..."
-          yes | $SDK_MANAGER --licenses
+          # 2. 接受协议
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           
-          # 5. 【手动安装组件】
-          # 直接安装 Buildozer 需要的核心组件
-          echo "正在安装 Build Tools 和 Platform Tools..."
-          $SDK_MANAGER "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          # 3. 安装组件 (修正点 3: 使用更通用的通配符或更新版本)
+          # 如果 34 不可用，尝试 35 或者直接让 buildozer 处理
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           
-          # 6. 【运行 Buildozer】
-          # 现在环境已经完美准备好了
-          echo "开始编译 APK..."
-          buildozer android debug p4a --package pgs4a
-          
-      # 修正点 2：这里必须升级到 @v4，否则会报 deprecated 错误
+          # 4. 构建
+          echo "Starting Buildozer..."
+          buildozer -v android debug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: my-pygame-apk
+          name: pygame-apk
+          # 修正点 4: Buildozer 默认输出路径
           path: bin/*.apk
