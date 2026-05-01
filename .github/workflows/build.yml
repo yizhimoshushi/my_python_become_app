@@ -52,34 +52,38 @@ jobs:
 
       - name: Build APK
         run: |
-          # 1. 第一次运行 Buildozer
-          # 这一步会触发 SDK 下载，但会卡在 License 协议上并报错退出
-          # 我们加上 || true，让脚本即使报错也不要停止，继续往下执行
-          echo "第一阶段：触发 SDK 下载（预期会失败）..."
-          buildozer android debug p4a --package pgs4a || true
+          # 1. 定义路径变量
+          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           
-          # 2. 定义 SDK 路径
-          export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
-          # 修正路径：新版 SDK 的 sdkmanager 在 lib/bin 下
-          SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/lib/bin/sdkmanager"
-          
-          # 3. 检查 SDK 是否下载成功
-          if [ ! -f "$SDK_MANAGER" ]; then
-              echo "错误：SDK 下载失败，找不到 sdkmanager"
-              exit 1
+          # 2. 【手动下载】Android SDK 命令行工具
+          # 如果目录不存在，我们就自己下载！
+          if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+              echo "SDK 未找到，开始手动下载..."
+              mkdir -p $ANDROID_HOME/cmdline-tools
+              # 下载 Google 官方工具
+              wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip
+              # 解压到正确的位置
+              unzip -q /tmp/cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+              # 重命名文件夹以匹配 Buildozer 的预期结构
+              mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           fi
           
-          # 4. 自动接受所有 License 协议
-          echo "第二阶段：自动接受 License..."
+          # 3. 定义 sdkmanager 的绝对路径
+          SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          
+          # 4. 【强制接受协议】
+          echo "正在接受 Android SDK 许可协议..."
           yes | $SDK_MANAGER --licenses
           
-          # 5. 预安装必要的组件（防止 Buildozer 再次卡住）
-          echo "第三阶段：预安装 Build Tools..."
+          # 5. 【手动安装组件】
+          # 直接安装 Buildozer 需要的核心组件
+          echo "正在安装 Build Tools 和 Platform Tools..."
           $SDK_MANAGER "platform-tools" "platforms;android-34" "build-tools;34.0.0"
           
-          # 6. 第二次运行 Buildozer
-          # 现在环境已经准备好了，这次应该能顺利编译
-          echo "第四阶段：正式编译..."
+          # 6. 【运行 Buildozer】
+          # 现在环境已经完美准备好了
+          echo "开始编译 APK..."
           buildozer android debug p4a --package pgs4a
           
       # 修正点 2：这里必须升级到 @v4，否则会报 deprecated 错误
