@@ -52,17 +52,22 @@ jobs:
 
       - name: Build APK
         run: |
-          # 1. 强制创建 licenses 目录并写入一个空的 license 文件
-          # 这是绕过 sdkmanager 授权检查的常用技巧
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
+          # 1. 定义 SDK 路径变量，防止路径错误
+          export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           
-          # 2. 关键步骤：直接生成一个已接受的 license 文件
-          # 这样 sdkmanager 就不会要求交互了
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.android/android-sdk-license
-          echo "d56f51875a5a82c6a55f59b6a5f5544e19915775" >> $HOME/.android/android-sdk-license
+          # 2. 创建 licenses 目录（如果不存在）
+          mkdir -p $HOME/.android
           
-          # 3. 现在再运行 buildozer，就不会卡在授权上了
+          # 3. 【核心修复】使用 yes 命令自动接受所有 licenses
+          # 这会模拟用户疯狂按 'y' 键，直到所有协议都被接受
+          yes | sdkmanager --licenses
+          
+          # 4. 预安装 build-tools（防止 buildozer 再次询问）
+          # 我们指定一个稳定的版本，比如 34.0.0 或 33.0.0
+          sdkmanager "build-tools;34.0.0" "platform-tools" "platforms;android-34"
+          
+          # 5. 现在运行 buildozer，环境已经准备好了
           buildozer android debug p4a --package pgs4a
           
       # 修正点 2：这里必须升级到 @v4，否则会报 deprecated 错误
