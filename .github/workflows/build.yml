@@ -1,0 +1,62 @@
+name: Build Pygame APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04 # 使用 Ubuntu 20.04，稳定性最好
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            build-essential \
+            git \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            libgstreamer1.0 \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            openjdk-17-jdk \
+            autoconf \
+            automake \
+            libtool
+
+      - name: Install Buildozer
+        run: |
+          pip3 install buildozer
+          pip3 install cython
+
+      - name: Build APK
+        run: |
+          # 这一步会下载 Android SDK 和 NDK，耗时较长
+          # 使用 pgs4a 目标来构建 Pygame 应用
+          buildozer android debug p4a --package pgs4a
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-pygame-apk
+          path: bin/*.apk
