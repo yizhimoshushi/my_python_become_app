@@ -52,6 +52,12 @@ jobs:
 
     - name: Setup Android SDK and Build
       run: |
+        # 清理可能冲突的环境变量
+        unset ANDROID_SDK_ROOT
+        unset ANDROID_NDK
+        unset ANDROID_NDK_HOME
+        unset ANDROID_NDK_ROOT
+        
         # 设置 ANDROID_HOME
         export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
@@ -74,16 +80,14 @@ jobs:
         mv cmdline-tools/bin cmdline-tools/latest/
         mv cmdline-tools/lib cmdline-tools/latest/
 
-        # 2. 创建兼容的 tools 目录（关键步骤！）
-        # Buildozer 期望在 tools/bin/sdkmanager 找到 sdkmanager
-        # 我们创建一个符号链接或复制目录
+        # 2. 创建兼容的 tools 目录
         echo "Creating compatibility layer for Buildozer..."
         mkdir -p $ANDROID_HOME/tools/bin
         mkdir -p $ANDROID_HOME/tools/lib
         
-        # 将 cmdline-tools/latest 的内容链接到 tools 目录
-        ln -s $ANDROID_HOME/cmdline-tools/latest/bin/* $ANDROID_HOME/tools/bin/
-        ln -s $ANDROID_HOME/cmdline-tools/latest/lib/* $ANDROID_HOME/tools/lib/
+        # 复制文件而不是符号链接（更可靠）
+        cp -r $ANDROID_HOME/cmdline-tools/latest/bin/* $ANDROID_HOME/tools/bin/
+        cp -r $ANDROID_HOME/cmdline-tools/latest/lib/* $ANDROID_HOME/tools/lib/
 
         # 3. 验证 sdkmanager 路径
         echo "Looking for sdkmanager..."
@@ -105,7 +109,8 @@ jobs:
         echo "Current directory: $(pwd)"
         ls -la buildozer.spec
         
-        echo "Starting Buildozer..."
+        # 增加日志级别以便调试
+        echo "Starting Buildozer with verbose logging..."
         buildozer -v android debug
 
     - name: Upload APK
