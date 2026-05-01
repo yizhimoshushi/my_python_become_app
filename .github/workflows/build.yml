@@ -52,33 +52,34 @@ jobs:
 
       - name: Build APK
         run: |
-          # 1. 定义 SDK 根目录
-          export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
+          # 1. 第一次运行 Buildozer
+          # 这一步会触发 SDK 下载，但会卡在 License 协议上并报错退出
+          # 我们加上 || true，让脚本即使报错也不要停止，继续往下执行
+          echo "第一阶段：触发 SDK 下载（预期会失败）..."
+          buildozer android debug p4a --package pgs4a || true
           
-          # 2. 【关键修复】修正 sdkmanager 的路径
-          # 新版本 SDK 把 sdkmanager 放在了 lib/bin 下，而不是 bin 下
+          # 2. 定义 SDK 路径
+          export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
+          # 修正路径：新版 SDK 的 sdkmanager 在 lib/bin 下
           SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/lib/bin/sdkmanager"
           
-          # 3. 创建 licenses 目录
-          mkdir -p $HOME/.android
-          
-          # 4. 使用 yes 命令自动接受所有 licenses
-          # 如果上面的路径不对，这里会报错，但我们先试试这个标准路径
-          if [ -f "$SDK_MANAGER" ]; then
-              echo "Found sdkmanager at $SDK_MANAGER"
-              yes | $SDK_MANAGER --licenses
-          else
-              echo "Error: sdkmanager not found at $SDK_MANAGER"
-              # 尝试找一下它到底在哪，方便调试
-              find $ANDROID_HOME -name "sdkmanager"
+          # 3. 检查 SDK 是否下载成功
+          if [ ! -f "$SDK_MANAGER" ]; then
+              echo "错误：SDK 下载失败，找不到 sdkmanager"
+              exit 1
           fi
           
-          # 5. 预安装 build-tools (使用绝对路径调用)
-          if [ -f "$SDK_MANAGER" ]; then
-              $SDK_MANAGER "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-          fi
+          # 4. 自动接受所有 License 协议
+          echo "第二阶段：自动接受 License..."
+          yes | $SDK_MANAGER --licenses
           
-          # 6. 运行 buildozer
+          # 5. 预安装必要的组件（防止 Buildozer 再次卡住）
+          echo "第三阶段：预安装 Build Tools..."
+          $SDK_MANAGER "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          
+          # 6. 第二次运行 Buildozer
+          # 现在环境已经准备好了，这次应该能顺利编译
+          echo "第四阶段：正式编译..."
           buildozer android debug p4a --package pgs4a
           
       # 修正点 2：这里必须升级到 @v4，否则会报 deprecated 错误
