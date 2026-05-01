@@ -65,14 +65,5 @@ log_level = 2
 # (str) 设置编译目标目录
 bin_dir = 
 
-[app]
-
-# (str) 应用包分类
-android.category = Game
-
-# (list) Android 软件包依赖
-# android.add_jar =
-# android.add_aar =
-
-# (str) Android NDK API (仅用于特定情况)
-# android.ndk_api =
+# (list) 额外的构建参数
+# android.add_compile_options = 
