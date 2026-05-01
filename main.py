@@ -19,18 +19,18 @@ BLACK = (20, 20, 20)
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        # 创建一个蓝色的方块作为玩家
         self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE))
         self.image.fill(BLUE)
         self.rect = self.image.get_rect()
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
         self.speed = 7
+        
+        # 增加一个变量记录触摸位置
+        self.touch_pos = None 
 
     def update(self):
-        # 获取键盘按键状态
+        # --- 1. 键盘控制 (电脑测试用) ---
         keys = pygame.key.get_pressed()
-        
-        # 移动逻辑
         if keys[pygame.K_LEFT] and self.rect.left > 0:
             self.rect.x -= self.speed
         if keys[pygame.K_RIGHT] and self.rect.right < SCREEN_WIDTH:
@@ -39,6 +39,24 @@ class Player(pygame.sprite.Sprite):
             self.rect.y -= self.speed
         if keys[pygame.K_DOWN] and self.rect.bottom < SCREEN_HEIGHT:
             self.rect.y += self.speed
+
+        # --- 2. 触摸控制 (安卓手机用) ---
+        # 获取所有触摸点
+        touches = pygame.mouse.get_pressed() # 简单的鼠标模拟
+        # 在安卓上，通常用 finger 事件，但在 pgs4a 简易模式下，
+        # 我们可以简单地让方块跟随鼠标/手指位置
+        
+        # 获取鼠标/手指位置
+        mx, my = pygame.mouse.get_pos()
+        
+        # 如果鼠标按下了（或者手指按在屏幕上），让方块跟着走
+        # 这里做一个简单的逻辑：手指按在哪，方块就往哪移动（平滑跟随）
+        if touches[0]: # 左键/手指按下
+             # 简单的跟随算法
+             if self.rect.centerx < mx: self.rect.x += self.speed
+             if self.rect.centerx > mx: self.rect.x -= self.speed
+             if self.rect.centery < my: self.rect.y += self.speed
+             if self.rect.centery > my: self.rect.y -= self.speed
 
 # --- 敌人类 ---
 class Enemy(pygame.sprite.Sprite):
