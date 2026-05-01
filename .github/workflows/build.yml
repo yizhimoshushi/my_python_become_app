@@ -50,33 +50,45 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython
 
-    # 注意：这里移除了 "Configure Buildozer" 步骤
-    # 我们直接使用仓库根目录下的 buildozer.spec
-    # 请确保你的仓库里已经包含了正确的 buildozer.spec 文件
-
-    - name: Build APK
+    - name: Setup Android SDK and Build
       run: |
         # 设置 ANDROID_HOME
         export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+        echo "ANDROID_HOME is set to $ANDROID_HOME"
+        echo "PATH is now $PATH"
 
-        # 1. 手动下载并修复 SDK 结构
+        # 1. 下载并设置 SDK 命令行工具
         echo "Setting up Android SDK..."
-        mkdir -p $ANDROID_HOME/cmdline-tools
+        mkdir -p $ANDROID_HOME
+        cd $ANDROID_HOME
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/sdk-tools.zip
         unzip -q /tmp/sdk-tools.zip -d /tmp/
         
-        # 修复目录结构: 将 cmdline-tools 移动到目标位置
-        mv /tmp/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+        # 移动 cmdline-tools 到正确位置
+        rm -rf cmdline-tools
+        mv /tmp/cmdline-tools ./
+        
+        # 创建 latest 子目录并移动内容
+        mkdir -p cmdline-tools/latest
+        mv cmdline-tools/bin cmdline-tools/latest/
+        mv cmdline-tools/lib cmdline-tools/latest/
 
-        # 2. 接受协议
+        # 2. 验证 sdkmanager 路径
+        echo "Looking for sdkmanager..."
+        find $ANDROID_HOME -name "sdkmanager" -type f
+        
+        # 3. 接受协议
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-        # 3. 安装组件
-        # 使用较新的 API 级别 (34 或 35)
+        # 4. 安装必要组件
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-        # 4. 构建
+        # 5. 验证安装
+        ls -la $ANDROID_HOME/platforms/
+        ls -la $ANDROID_HOME/build-tools/
+
+        # 6. 开始构建
         echo "Starting Buildozer..."
         buildozer -v android debug
 
