@@ -88,7 +88,11 @@ jobs:
         ls -la $ANDROID_HOME/platforms/
         ls -la $ANDROID_HOME/build-tools/
 
-        # 6. 开始构建
+        # 6. 返回项目根目录并开始构建
+        cd $GITHUB_WORKSPACE
+        echo "Current directory: $(pwd)"
+        ls -la buildozer.spec
+        
         echo "Starting Buildozer..."
         buildozer -v android debug
 
