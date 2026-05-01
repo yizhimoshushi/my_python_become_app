@@ -14,8 +14,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # 修正点 1：这里必须用 setup-python 动作，而不是 upload-artifact
       - name: Set up Python
-        uses: actions/upload-artifact@v4
+        uses: actions/setup-python@v2
         with:
           python-version: '3.8'
 
@@ -55,8 +56,9 @@ jobs:
           # 使用 pgs4a 目标来构建 Pygame 应用
           buildozer android debug p4a --package pgs4a
           
+      # 修正点 2：这里必须升级到 @v4，否则会报 deprecated 错误
       - name: Upload APK
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: my-pygame-apk
           path: bin/*.apk
