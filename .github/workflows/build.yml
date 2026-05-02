@@ -18,7 +18,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install System Dependencies (with libtool fix)
+    - name: Install System Dependencies (with libltdl-dev fix)
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -42,15 +42,10 @@ jobs:
           autoconf \
           automake \
           libtool \
+          libltdl-dev \  # 关键：解决 LT_SYS_SYMBOL_USCORE 错误
           unzip \
           wget \
           m4
-
-        # 为 libffi 编译设置环境变量（解决 LT_SYS_SYMBOL_USCORE 错误）
-        echo "export M4=/usr/bin/m4" >> $GITHUB_ENV
-        echo "export AUTOCONF=/usr/bin/autoconf" >> $GITHUB_ENV
-        echo "export AUTOMAKE=/usr/bin/automake" >> $GITHUB_ENV
-        echo "export LIBTOOL=/usr/bin/libtool" >> $GITHUB_ENV
 
     - name: Install Buildozer
       run: |
