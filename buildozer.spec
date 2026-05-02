@@ -34,8 +34,8 @@ android.permissions = INTERNET,VIBRATE
 android.orientation = landscape
 
 # --- 2026 年兼容性配置 ---
-# 使用稳定版 NDK (r23.2) 而不是 r25b
-android.ndk = 23.2.8568313
+# 使用 NDK r23b（与 GitHub Release 一致）
+android.ndk = 23b
 
 # Android API 级别
 android.api = 34
