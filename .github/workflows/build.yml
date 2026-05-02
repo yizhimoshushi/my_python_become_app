@@ -44,8 +44,6 @@ jobs:
           libtool \
           unzip \
           wget \
-          # 关键：安装兼容版本
-          libtool-bin \
           m4
 
         # 为 libffi 编译设置环境变量（解决 LT_SYS_SYMBOL_USCORE 错误）
