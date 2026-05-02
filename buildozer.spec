@@ -19,9 +19,9 @@ source.include_exts = py,png,jpg,kv,atlas,ttf
 version = 0.1
 
 # --- 关键修复点 ---
-# 1. 移除了 sdl2 和 hostpython3 (它们不是 pip 包，会导致参数解析错误)
-# 2. 确保没有包含任何 -dev 或非法字符
-requirements = python3, pygame
+# 1. 使用稳定版 pygame (2.4.0)
+# 2. 移除非法字符和 -dev 包
+requirements = python3,pygame==2.4.0
 
 # (str) 图标 (如果有的话，取消注释)
 # icon.filename = %(source.dir)s/icon.png
@@ -34,28 +34,16 @@ android.permissions = INTERNET,VIBRATE
 android.orientation = landscape
 
 # --- 2026 年兼容性配置 ---
-# 使用较新的 NDK 版本 (25b) 以支持现代编译器
-android.ndk = 25b
+# 使用稳定版 NDK (r23.2) 而不是 r25b
+android.ndk = 23.2.8568313
 
 # Android API 级别
 android.api = 34
 android.minapi = 21
+android.ndk_api = 21
 
-# (str) 语言区域
-ios.kivy_ios_dir =
-ios.multiarch_dirs =
-
-# (list) KivyMD 等资源 (如果需要)
-# kivy.deps = 
-
-# (list) 额外的 Android 源文件
-# android.add_src =
-
-# (str) 资产目录 (如果需要将文件打包进 APK)
-# android.add_assets =
-
-# (list) 引导程序
-# android.bootstrap = pygame
+# 强制使用 develop 分支的 python-for-android
+p4a.branch = develop
 
 [buildozer]
 
@@ -63,7 +51,7 @@ ios.multiarch_dirs =
 log_level = 2
 
 # (str) 设置编译目标目录
-bin_dir = 
+bin_dir = bin
 
 # (list) 额外的构建参数
 # android.add_compile_options = 
