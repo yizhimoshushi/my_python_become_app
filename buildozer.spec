@@ -23,7 +23,7 @@ version = 0.1
 # 2. 移除非法字符和 -dev 包
 requirements = python3,pygame==2.4.0
 
-# (str) 图标 (如果有的话，取消注释)
+# (str) 应用图标（如果有，取消注释）
 # icon.filename = %(source.dir)s/icon.png
 
 # (list) Android 权限
@@ -45,6 +45,9 @@ android.ndk_api = 21
 # 强制使用 develop 分支的 python-for-android
 p4a.branch = develop
 
+# (list) 启动器（默认使用 sdl2）
+android.bootstrap = sdl2
+
 [buildozer]
 
 # (int) 日志级别 (0 = error, 1 = warning, 2 = info, 3 = debug)
@@ -55,3 +58,6 @@ bin_dir = bin
 
 # (list) 额外的构建参数
 # android.add_compile_options = 
+
+# (str) 构建超时时间（秒）
+build.timeout = 3600
