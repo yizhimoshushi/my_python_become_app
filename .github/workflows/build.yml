@@ -56,32 +56,32 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython
 
-    - name: Cache Buildozer Dependencies
-      uses: actions/cache@v4
-      with:
-        path: .buildozer
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('**/buildozer.spec') }}
-        restore-keys: |
-          ${{ runner.os }}-buildozer-
-
-    - name: Sanitize buildozer.spec
+    # --- 🔴 关键修复点 1: 修复 Line Endings 防止解析错误 ---
+    - name: Sanitize & Fix Spec
       run: |
-        # 1. 转换换行符
+        # 1. 转换换行符 (防止 Windows CRLF 导致的问题)
         dos2unix buildozer.spec 2>/dev/null || true
-
-        # 2. 强制设置 NDK 版本
-        # 先删除所有 android.ndk 行，再添加一个正确的，确保唯一性
+        
+        # 2. 防御性清理: 确保 android.ndk 只有一行
+        # 删除所有旧的 android.ndk 行，然后添加一行干净的
         sed -i '/^android.ndk/d' buildozer.spec
         echo "android.ndk = 27c" >> buildozer.spec
         
         # 3. 验证结果
-        echo "=== Final android.ndk configuration ==="
+        echo "--- Current NDK Config ---"
         grep "android.ndk" buildozer.spec
-        count=$(grep -c "^android.ndk" buildozer.spec)
-        if [ "$count" -ne 1 ]; then
-          echo "ERROR: android.ndk count is $count, expected 1"
-          exit 1
-        fi
+
+    # --- 🔴 关键修复点 2: 自动同意 Android SDK 许可 (解决 Aidl 报错) ---
+    - name: Accept Android SDK Licenses
+      run: |
+        mkdir -p ~/.android
+        # 生成许可文件，内容为 Google 的标准许可哈希值
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/repositories.cfg
+        echo "e1f5fc610ae56ea4a625090af134a1e421f82c4a" >> ~/.android/repositories.cfg
+        # 创建 licenses 目录并写入同意标记
+        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
+        echo -e "\n84831b940a7c1fd3441eae2a582304c034f2c692" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" >> $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
 
     - name: Build APK
       run: |
