@@ -64,25 +64,24 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildozer-
 
-    - name: Fix Line Endings & Update NDK
-      # 1. 修正文件格式 2. 强制将 NDK 版本改为 27c
+    - name: Sanitize buildozer.spec
       run: |
-        # 修正换行符，防止解析错误
-        dos2unix buildozer.spec || true
+        # 1. 转换换行符
+        dos2unix buildozer.spec 2>/dev/null || true
+
+        # 2. 强制设置 NDK 版本
+        # 先删除所有 android.ndk 行，再添加一个正确的，确保唯一性
+        sed -i '/^android.ndk/d' buildozer.spec
+        echo "android.ndk = 27c" >> buildozer.spec
         
-        # 核心修复：使用 sed 查找包含 'android.ndk' 的行并替换整行为 'android.ndk = 27c'
-        # 这样就不会产生重复项
-        if grep -q "^android.ndk" buildozer.spec; then
-          echo "Found existing android.ndk line. Updating it..."
-          sed -i '/^android.ndk.*/c\android.ndk = 27c' buildozer.spec
-        else
-          echo "No android.ndk line found. Adding it..."
-          echo "android.ndk = 27c" >> buildozer.spec
+        # 3. 验证结果
+        echo "=== Final android.ndk configuration ==="
+        grep "android.ndk" buildozer.spec
+        count=$(grep -c "^android.ndk" buildozer.spec)
+        if [ "$count" -ne 1 ]; then
+          echo "ERROR: android.ndk count is $count, expected 1"
+          exit 1
         fi
-        
-        # 打印结果供检查
-        echo "--- Current buildozer.spec content around NDK ---"
-        grep -A 2 -B 2 "android.ndk" buildozer.spec
 
     - name: Build APK
       run: |
