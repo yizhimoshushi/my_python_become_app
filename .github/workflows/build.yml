@@ -1,50 +1,45 @@
-name: Build APK
+name: Build Android APK
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  build-android:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # 更新了版本
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.10'
 
     - name: Install system dependencies
-      # 修复点：确保 run 关键字前有正确的缩进
       run: |
         sudo apt update
-        sudo apt install -y --no-install-recommends \
-          git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
-          zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev \
-          libssl-dev build-essential libglib2.0-dev libgtk-3-dev libgles2-mesa-dev \
-          libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+        sudo apt install -y \
+          openjdk-17-jdk \
+          git zip unzip \
+          autoconf libtool pkg-config \
+          zlib1g-dev libncurses5-dev libncursesw5-dev \
+          libtinfo5 cmake
 
-    - name: Install Buildozer and Cython
-      # 修复点：确保 run 关键字前有正确的缩进
+    - name: Install Buildozer
       run: |
-        pip3 install --user cython==0.29.33
-        pip3 install --user buildozer
+        pip install --upgrade pip
+        pip install buildozer
 
-    - name: Build APK
-      # 修复点：确保 run 关键字前有正确的缩进
+    - name: Build APK with Buildozer
       run: |
-        # 优化点：将 spec 中的 android.ndk 改为 25b，避免 27c 的兼容性问题
-        sed -i 's/android.ndk = 27c/android.ndk = 25b/g' buildozer.spec
-        ~/.local/bin/buildozer -v android debug
-      env:
-        JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+        buildozer -v android debug
 
-    - name: Upload Artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: apk
+        name: pygame-test-apk
         path: bin/*.apk
