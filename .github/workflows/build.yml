@@ -1,26 +1,25 @@
 name: Build APK
 
 on:
-  # 可以设置为在 push 到 main 分支或打 tag 时触发
   push:
     branches: [ main ]
-  # 或者手动在 Actions 页面触发
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04 # Buildozer 推荐使用 Ubuntu 20.04
+    runs-on: ubuntu-20.04
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # 更新了版本
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.9' # Buildozer 对 Python 3.9 兼容性较好
+        python-version: '3.9'
 
     - name: Install system dependencies
+      # 修复点：确保 run 关键字前有正确的缩进
       run: |
         sudo apt update
         sudo apt install -y --no-install-recommends \
@@ -30,8 +29,22 @@ jobs:
           libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
     - name: Install Buildozer and Cython
+      # 修复点：确保 run 关键字前有正确的缩进
       run: |
         pip3 install --user cython==0.29.33
         pip3 install --user buildozer
 
-    - name: Initialize Buildozer (Optional, to generate .
+    - name: Build APK
+      # 修复点：确保 run 关键字前有正确的缩进
+      run: |
+        # 优化点：将 spec 中的 android.ndk 改为 25b，避免 27c 的兼容性问题
+        sed -i 's/android.ndk = 27c/android.ndk = 25b/g' buildozer.spec
+        ~/.local/bin/buildozer -v android debug
+      env:
+        JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk
+        path: bin/*.apk
