@@ -48,7 +48,8 @@ jobs:
           libffi-dev \
           unzip \
           wget \
-          m4
+          m4 \
+          dos2unix
 
     - name: Install Buildozer
       run: |
@@ -63,22 +64,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildozer-
 
-    - name: Fix Line Endings (Optional)
-      # 确保 spec 文件是 Unix 格式
+    - name: Fix Line Endings & Update NDK
+      # 1. 修正文件格式 2. 强制将 NDK 版本改为 27c
       run: |
-        sudo apt-get install -y dos2unix
+        # 修正换行符，防止解析错误
         dos2unix buildozer.spec || true
-
-    - name: Update NDK Version in Spec
-      # 强制将 spec 文件中的 NDK 版本设为 r27c (满足最低 v25 要求)
-      run: |
-        if grep -q "android.ndk" buildozer.spec; then
-          sed -i 's/android.ndk.*/android.ndk = 27c/g' buildozer.spec
+        
+        # 核心修复：使用 sed 查找包含 'android.ndk' 的行并替换整行为 'android.ndk = 27c'
+        # 这样就不会产生重复项
+        if grep -q "^android.ndk" buildozer.spec; then
+          echo "Found existing android.ndk line. Updating it..."
+          sed -i '/^android.ndk.*/c\android.ndk = 27c' buildozer.spec
         else
+          echo "No android.ndk line found. Adding it..."
           echo "android.ndk = 27c" >> buildozer.spec
         fi
-        # 显示确认
-        grep "android.ndk" buildozer.spec
+        
+        # 打印结果供检查
+        echo "--- Current buildozer.spec content around NDK ---"
+        grep -A 2 -B 2 "android.ndk" buildozer.spec
 
     - name: Build APK
       run: |
