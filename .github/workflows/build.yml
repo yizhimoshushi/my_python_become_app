@@ -1,110 +1,37 @@
-name: Build Pygame APK
+name: Build APK
 
 on:
+  # 可以设置为在 push 到 main 分支或打 tag 时触发
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # 或者手动在 Actions 页面触发
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # Buildozer 推荐使用 Ubuntu 20.04
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.9' # Buildozer 对 Python 3.9 兼容性较好
 
-    - name: Install System Dependencies
+    - name: Install system dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          python3-pip \
-          build-essential \
-          git \
-          ffmpeg \
-          libsdl2-dev \
-          libsdl2-image-dev \
-          libsdl2-mixer-dev \
-          libsdl2-ttf-dev \
-          libportmidi-dev \
-          libswscale-dev \
-          libavformat-dev \
-          libavcodec-dev \
-          zlib1g-dev \
-          libgstreamer1.0-dev \
-          gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good \
-          openjdk-17-jdk \
-          autoconf \
-          automake \
-          libtool \
-          libltdl-dev \
-          libffi-dev \
-          unzip \
-          wget \
-          m4 \
-          dos2unix
+        sudo apt update
+        sudo apt install -y --no-install-recommends \
+          git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config \
+          zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev \
+          libssl-dev build-essential libglib2.0-dev libgtk-3-dev libgles2-mesa-dev \
+          libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
-    - name: Install Buildozer
+    - name: Install Buildozer and Cython
       run: |
-        python -m pip install --upgrade pip
-        pip install buildozer cython
+        pip3 install --user cython==0.29.33
+        pip3 install --user buildozer
 
-    - name: Fix Spec File (Remove Deprecated Key)
-      run: |
-        # 修复日志中提示的弃用警告：android.bootstrap -> p4a.bootstrap
-        # 同时确保换行符正确
-        dos2unix buildozer.spec 2>/dev/null || true
-        sed -i 's/^android.bootstrap/sdl2/#/g' buildozer.spec
-        echo "p4a.bootstrap = sdl2" >> buildozer.spec
-        
-        # 强制设置 NDK 版本（根据日志推荐使用 28c）
-        sed -i '/^android.ndk/d' buildozer.spec
-        echo "android.ndk = 28c" >> buildozer.spec
-
-    # --- 🔴 核心修复：手动安装 SDK 命令行工具 ---
-    - name: Manual Install Android SDK
-      run: |
-        # 1. 创建 SDK 目录
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk
-        
-        # 2. 下载最新的命令行工具
-        # 注意：2026年可能需要更新这个URL，这是目前的标准URL
-        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O sdk-tools.zip
-        
-        # 3. 解压并移动到 SDK 目录
-        unzip sdk-tools.zip -d $HOME/.buildozer/android/platform/android-sdk-temp
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest
-        mv $HOME/.buildozer/android/platform/android-sdk-temp/cmdline-tools/* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ || true
-        
-        # 4. 清理临时文件
-        rm -rf $HOME/.buildozer/android/platform/android-sdk-temp sdk-tools.zip
-
-    # --- 🟢 必须步骤：接受 SDK 许可协议 ---
-    - name: Accept SDK Licenses
-      run: |
-        mkdir -p $HOME/.android
-        # 创建 repositories.cfg 防止警告
-        touch $HOME/.android/repositories.cfg
-        
-        # 创建 licenses 目录并写入许可哈希
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-        cat > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license << EOF
-8933bad161af4178b1185d1a37fbf41ea5269c55
-EOF
-
-    - name: Build APK
-      run: |
-        buildozer -v android debug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: my-app-debug.apk
-        path: bin/*.apk
+    - name: Initialize Buildozer (Optional, to generate .
