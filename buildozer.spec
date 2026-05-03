@@ -35,7 +35,7 @@ android.orientation = landscape
 
 # --- 2026 年兼容性配置 ---
 # 使用 NDK r23b（与下载的版本一致）
-android.ndk = 28c
+android.ndk = 27c
 
 # Android API 级别
 android.api = 34
