@@ -1,63 +1,34 @@
 [app]
 
-# (str) 应用标题
-title = My Pygame App
+# 应用基本信息
+title = Pygame Test
+package.name = pygametest
+package.domain = org.example
 
-# (str) 包名
-package.name = mypygameapp
-
-# (str) 包域名
-package.domain = org.test
-
-# (list) 源码目录
 source.dir = .
+source.include_exts = py
 
-# (list) 包含的文件扩展名
-source.include_exts = py,png,jpg,kv,atlas,ttf
+# 入口文件（非常重要）
+requirements = python3,pygame==2.5.2
 
-# (str) 版本号
-version = 0.1
+orientation = portrait
+osx.python_version = 3
 
-# --- 关键修复点 ---
-# 1. 使用稳定版 pygame (2.4.0)
-# 2. 移除非法字符和 -dev 包
-requirements = python3,pygame==2.4.0
+fullscreen = 1
+show_status_bar = 0
 
-# (str) 应用图标（如果有，取消注释）
-# icon.filename = %(source.dir)s/icon.png
-
-# (list) Android 权限
-android.permissions = INTERNET,VIBRATE
-
-# (str) 屏幕方向
-# portrait (竖屏) 或 landscape (横屏)
-android.orientation = landscape
-
-# --- 2026 年兼容性配置 ---
-# 使用 NDK r23b（与下载的版本一致）
-android.ndk = 27c
-
-# Android API 级别
-android.api = 34
+# Android 专用
+android.permissions = VIBRATE
+android.api = 33
 android.minapi = 21
-android.ndk_api = 21
+android.ndk = 25b
+android.accept_sdk_license = True
 
-# 强制使用 develop 分支的 python-for-android
+# 关闭不需要的功能（减少体积 & 报错）
 p4a.branch = develop
+p4a.local_recipes =
 
-# (list) 启动器（默认使用 sdl2）
-android.bootstrap = sdl2
-
+# SDL / pygame 设置
 [buildozer]
-
-# (int) 日志级别 (0 = error, 1 = warning, 2 = info, 3 = debug)
 log_level = 2
-
-# (str) 设置编译目标目录
-bin_dir = bin
-
-# (list) 额外的构建参数
-# android.add_compile_options = 
-
-# (str) 构建超时时间（秒）
-build.timeout = 3600
+warn_on_root = 1
